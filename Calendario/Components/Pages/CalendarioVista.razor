@@ -1,0 +1,146 @@
+﻿@page "/"
+@using System
+@using System.Collections.Generic
+@using System.Linq
+@using System.Threading.Tasks
+
+@using System.Globalization
+@rendermode InteractiveServer
+
+<PageTitle>Calendario Mensual</PageTitle>
+
+<h1>Calendario mensual</h1>
+<div class="controls">
+    <label>
+        Fecha de inicio:
+        <input type="date" @bind="FechaInicio" @bind:format="yyyy-MM-dd" />
+    </label>
+    <label>
+        Días a mostrar:
+        <input type="number" min="1" @bind="DiasAMostrar" />
+    </label>
+    <button class="btn btn-primary" @onclick="async () => await Generar()">Generar</button>
+</div>
+
+<p>@Mensaje</p>
+
+@if (Meses != null && Meses.Any())
+{
+    <div class="months">
+        @foreach (var mes in Meses)
+        {
+            <div class="month">
+                <div class="month-header">
+                    <h2>@mes.NombreMes</h2>
+                    <div class="weekdays">
+                        <div>Dom</div>
+                        <div>Lun</div>
+                        <div>Mar</div>
+                        <div>Mié</div>
+                        <div>Jue</div>
+                        <div>Vie</div>
+                        <div>Sáb</div>
+                    </div>
+                </div>
+                <div class="weeks">
+                    @foreach (var semana in mes.Semanas)
+                    {
+                        <div class="week">
+                            @foreach (var celda in semana)
+                            {
+                                var clases = "day";
+                                if (celda.EsFestivo) clases += " holiday";
+                                else if (celda.EsFinDeSemana) clases += " weekend";
+                                else clases += " weekday";
+                                if (!celda.EstaEnRango || celda.Fecha.Month != mes.NumeroMes) clases += " out-of-range";
+
+                                <div class="@clases">
+                                    <span class="date">@celda.Fecha.Day</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private DateTime FechaInicio { get; set; } = DateTime.Today;
+    private int DiasAMostrar { get; set; } = 30;
+    private string Mensaje = "Esperando...";
+    private List<VistaMes> Meses { get; set; } = new();
+
+    public class CeldaFecha
+    {
+        public DateTime Fecha { get; set; }
+        public bool EstaEnRango { get; set; }
+        public bool EsFestivo { get; set; }
+        public bool EsFinDeSemana { get; set; }
+        public bool EsDiaHabil { get; set; }
+    }
+
+    public class VistaMes
+    {
+        public int NumeroMes { get; set; }
+        public string NombreMes { get; set; }
+        public List<List<CeldaFecha>> Semanas { get; set; } = new();
+    }
+
+    public static readonly HashSet<(int mes, int dia)> DiasFestivos = new()
+    {
+        (1, 1), (2, 5), (3, 18), (5, 1), (9, 16), (11, 20), (12, 25)
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Generar();
+    }
+
+    public async Task Generar()
+    {
+        Mensaje = $"Calendario de {DiasAMostrar} días, comenzando en {FechaInicio.ToShortDateString()}";
+        Meses.Clear();
+
+        DateTime inicio = FechaInicio.Date;
+        DateTime fin = inicio.AddDays(DiasAMostrar - 1);
+
+        DateTime mesActual = new DateTime(inicio.Year, inicio.Month, 1);
+        while (mesActual <= fin)
+        {
+            var vistaMes = new VistaMes { NumeroMes = mesActual.Month, NombreMes = mesActual.ToString("MMMM yyyy", CultureInfo.CurrentCulture) };
+            int diasEnMes = DateTime.DaysInMonth(mesActual.Year, mesActual.Month);
+            DateTime primerDiaMes = new DateTime(mesActual.Year, mesActual.Month, 1);
+
+            int diferenciaDomingo = ((int)primerDiaMes.DayOfWeek + 7 - (int)DayOfWeek.Sunday) % 7;
+            DateTime inicioCalendario = primerDiaMes.AddDays(-diferenciaDomingo);
+
+            DateTime iter = inicioCalendario;
+            while (iter <= new DateTime(mesActual.Year, mesActual.Month, diasEnMes).AddDays(6))
+            {
+                var semana = new List<CeldaFecha>();
+                for (int i = 0; i < 7; i++)
+                {
+                    bool esDelMes = iter.Month == mesActual.Month;
+                    bool esAntesDeRango = iter < inicio;
+                    bool esDespuesDeRango = iter > fin;
+                    bool estaEnRango = !esAntesDeRango && !esDespuesDeRango && esDelMes;
+                    bool esFestivo = DiasFestivos.Contains((iter.Month, iter.Day));
+                    bool esFinDeSemana = iter.DayOfWeek == DayOfWeek.Saturday || iter.DayOfWeek == DayOfWeek.Sunday;
+                    bool esDiaHabil = !esFinDeSemana;
+
+                    semana.Add(new CeldaFecha { Fecha = iter, EstaEnRango = estaEnRango, EsFestivo = esFestivo, EsFinDeSemana = esFinDeSemana, EsDiaHabil = esDiaHabil });
+                    iter = iter.AddDays(1);
+                }
+                vistaMes.Semanas.Add(semana);
+            }
+
+            vistaMes.Semanas = vistaMes.Semanas.Where(s => s.Any(c => c.Fecha.Month == mesActual.Month)).ToList();
+
+            Meses.Add(vistaMes);
+            mesActual = mesActual.AddMonths(1);
+        }
+        StateHasChanged();
+    }
+}

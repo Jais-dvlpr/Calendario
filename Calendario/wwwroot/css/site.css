@@ -1,0 +1,105 @@
+﻿:root {
+    --green: #bdecb6;
+    --yellow: #fff3b0;
+    --orange: #ffd1a9;
+    --gray: #e0e0e0;
+    --border: #cccccc
+}
+
+body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    padding: 20px;
+    background: #fafafa
+}
+
+.controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 18px
+}
+
+    .controls input[type="date"], .controls input[type="number"] {
+        padding: 6px
+    }
+
+.months {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px
+}
+
+.month {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    width: 320px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03)
+}
+
+.month-header {
+    margin-bottom: 8px
+}
+
+.weekdays {
+    display: grid;
+    grid-template-columns: repeat(7,1fr);
+    font-weight: 600;
+    text-align: center;
+}
+
+.weeks {
+    display: flex;
+    flex-direction: column;
+    gap: 4px
+}
+
+.week {
+    display: grid;
+    grid-template-columns: repeat(7,1fr);
+    gap: 4px
+}
+
+.day {
+    min-height: 46px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 6px;
+    border-radius: 6px;
+    position: relative
+}
+
+    .day .date {
+        font-size: 14px
+    }
+
+.weekday {
+    background: var(--green)
+}
+
+.weekend {
+    background: var(--yellow)
+}
+
+.holiday {
+    background: var(--orange);
+    font-weight: 700
+}
+
+.out-of-range {
+    background: var(--gray);
+    color: #777
+}
+
+@media(max-width:760px) {
+    .month {
+        width: 100%
+    }
+
+    .controls {
+        flex-direction: column;
+        align-items: flex-start
+    }
+}
